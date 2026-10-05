@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Apna Chat</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b141a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Apna Chat">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#071016;--panel:#101a21;--panel2:#15232c;--line:#263740;--green:#00a884;--text:#edf5f7;--muted:#9aadb5}
+body{margin:0;background:#05090c;color:var(--text);font-family:Arial,system-ui,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{max-width:760px;margin:auto;min-height:100vh;background:var(--bg);position:relative}
+.hidden{display:none!important}
+header{position:sticky;top:0;z-index:20;background:#111d24;border-bottom:1px solid var(--line);padding:15px 16px}
+.headrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-size:22px;font-weight:800}
+.header-actions{display:flex;gap:8px}
+.iconbtn{width:42px;height:42px;border:1px solid #31444e;border-radius:50%;background:#18262e;color:#fff}
+.tabs{display:flex;margin-top:14px;gap:6px}
+.tab{flex:1;padding:11px 8px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-weight:700}
+.tab.active{background:#18352f;color:#fff}
+main{padding:12px}
+.search{width:100%;padding:13px 15px;border-radius:14px;border:1px solid var(--line);background:#0d171d;color:#fff;outline:none}
+.search:focus,input:focus{border-color:var(--green)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px}
+.chat-item{display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid #1d2b33}
+.chat-item:last-child{border-bottom:0}
+.avatar{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:#24594d;font-weight:800;font-size:18px;position:relative;flex:none}
+.dot{position:absolute;right:1px;bottom:1px;width:13px;height:13px;border-radius:50%;background:#59666c;border:3px solid var(--panel)}
+.dot.online{background:#16d39b}
+.chat-main{min-width:0;flex:1}
+.chat-top{display:flex;justify-content:space-between;gap:8px}
+.name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.time{font-size:11px;color:var(--muted);white-space:nowrap}
+.preview{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}
+.badge{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;background:var(--green);color:#001b14;font-size:10px;font-weight:800}
+.empty{padding:30px 12px;text-align:center;color:var(--muted)}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+input{width:100%;padding:13px;border-radius:12px;border:1px solid #344850;background:#0a1217;color:#fff;outline:none;margin-top:8px}
+button.primary{width:100%;padding:13px;border:0;border-radius:12px;background:var(--green);color:#00261d;font-weight:800;margin-top:8px}
+button.secondary{width:100%;padding:13px;border:1px solid #344850;border-radius:12px;background:#22313a;color:#fff;font-weight:700;margin-top:8px}
+.small{font-size:12px;color:var(--muted)}
+.status{margin-top:9px;color:#b6c5ca;font-size:13px;white-space:pre-wrap}
+.contact-actions{display:flex;gap:7px;margin-top:10px}
+.contact-actions button{flex:1}
+.profile-line{padding:12px 0;border-bottom:1px solid var(--line)}
+.profile-line:last-child{border-bottom:0}
+.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.value{margin-top:4px;word-break:break-all}
+#chatView{position:fixed;inset:0;z-index:50;background:var(--bg);max-width:760px;margin:auto;display:flex;flex-direction:column}
+.chat-head{background:#111d24;border-bottom:1px solid var(--line);padding:10px 12px;display:flex;align-items:center;gap:10px}
+.back{width:42px;height:42px;border:0;background:transparent;color:#fff;font-size:28px}
+.chat-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#24594d;font-weight:800;position:relative}
+.chat-title{min-width:0;flex:1}
+.chat-name{font-weight:800}
+.chat-presence{font-size:12px;color:var(--muted);margin-top:3px}
+.chat-body{flex:1;overflow:auto;padding:12px;background:
+radial-gradient(circle at 20% 20%,rgba(0,168,132,.04),transparent 30%),
+radial-gradient(circle at 80% 70%,rgba(0,168,132,.03),transparent 30%)}
+#messages{display:flex;flex-direction:column;gap:4px}
+.msg{max-width:82%;padding:9px 11px;border-radius:14px;word-break:break-word}
+.mine{align-self:flex-end;background:#005c4b;border-bottom-right-radius:4px}
+.theirs{align-self:flex-start;background:#1d2a31;border-bottom-left-radius:4px}
+.msgmeta{font-size:10px;color:#b6c8c9;margin-top:4px;text-align:right}
+.composer{padding:9px;background:#111d24;border-top:1px solid var(--line);display:flex;gap:8px}
+.composer input{margin:0;flex:1;border-radius:22px}
+.sendbtn{width:50px;border:0;border-radius:50%;background:var(--green);font-size:20px}
+
+/* WhatsApp-style feature layer */
+.chat-head .head-tools{display:flex;gap:4px}
+.head-tool,.toolbtn{border:0;background:transparent;color:#fff;font-size:20px;width:40px;height:40px;border-radius:50%}
+.head-tool:active,.toolbtn:active{background:#26363e}
+.msg{position:relative;cursor:pointer}
+.msg.selected{outline:2px solid #00a884}
+.msg-actions{display:flex;gap:4px;margin-top:5px;justify-content:flex-end}
+.msg-actions button{border:0;background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:4px 7px;font-size:11px}
+.reactions{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
+.reaction{font-size:12px;background:#26363e;border-radius:10px;padding:2px 6px}
+.replybar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#16262d;border-top:1px solid var(--line);padding:8px 12px;font-size:12px}
+.replybar>div{min-width:0;flex:1;border-left:3px solid var(--green);padding-left:8px}
+.replybar #replyText{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);margin-top:2px}
+.replybar button{border:0;background:transparent;color:#fff;font-size:24px}
+.emoji-panel{position:absolute;bottom:70px;left:8px;right:8px;background:#18262e;border:1px solid var(--line);border-radius:16px;padding:10px;display:grid;grid-template-columns:repeat(8,1fr);gap:6px;z-index:80}
+.emoji-panel button{border:0;background:transparent;font-size:24px;padding:6px;border-radius:8px}
+.emoji-panel button:active{background:#26363e}
+.msg-status{font-size:10px;color:#9bd9cc;margin-left:3px}
+.typing{color:#00a884;font-size:11px;min-height:14px}
+.chat-menu{position:absolute;right:10px;top:58px;background:#18262e;border:1px solid var(--line);border-radius:12px;padding:5px;z-index:70;box-shadow:0 8px 30px #0008}
+.chat-menu button{display:block;width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px 13px;border-radius:8px}
+.chat-menu button:hover{background:#26363e}
+.search-msg{margin:8px 12px 0}
+.unread-dot{min-width:20px;height:20px;border-radius:10px;background:#00a884;color:#001b14;font-size:11px;font-weight:800;display:grid;place-items:center}
+.status-card{padding:10px 12px;border-bottom:1px solid var(--line)}
+.media-preview{max-width:230px;border-radius:10px;margin-top:4px;display:block}
+.recording{background:#6b2020!important}
+
+.login{max-width:520px;margin:20vh auto;padding:16px}
+.login h1{font-size:30px;margin-bottom:5px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1c2a31;border:1px solid #3b505a;padding:10px 14px;border-radius:12px;z-index:100;max-width:90%;display:none}
+@media(min-width:761px){#chatView{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+
+html,body{min-height:100%;background:#05090c;overscroll-behavior:none}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.app{max-width:900px;box-shadow:0 0 60px #0008}
+header{padding-top:calc(12px + env(safe-area-inset-top))}
+.app-shell-badge{display:inline-flex;align-items:center;gap:5px;margin-top:3px;color:#7ee6c8;font-size:11px}
+.bottom-nav{position:fixed;z-index:90;left:50%;transform:translateX(-50%);bottom:0;width:min(900px,100%);padding:7px 10px calc(7px + env(safe-area-inset-bottom));background:rgba(11,20,26,.96);backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;gap:6px}
+.bottom-nav button{flex:1;border:0;background:transparent;color:#91a3aa;border-radius:14px;padding:8px 5px;font-size:11px;font-weight:700}
+.bottom-nav button span{display:block;font-size:21px;line-height:22px;margin-bottom:2px}
+.bottom-nav button.active{background:#18352f;color:#fff}
+main{padding-bottom:84px}
+.install-banner{position:fixed;z-index:95;left:12px;right:12px;bottom:78px;background:#15252c;border:1px solid #31505b;border-radius:18px;padding:12px;display:flex;align-items:center;gap:10px;box-shadow:0 12px 35px #0008}
+.install-banner .grow{flex:1;min-width:0}.install-banner .small{margin-top:3px}
+.install-banner button{border:0;border-radius:10px;padding:9px 12px;font-weight:800}.install-now{background:var(--green);color:#001b14}.install-close{background:#26363e;color:#fff}
+.splash{position:fixed;inset:0;z-index:200;background:#071016;display:grid;place-items:center;text-align:center;transition:opacity .25s}
+.splash.hide{opacity:0;pointer-events:none}.splash-logo{width:92px;height:92px;border-radius:28px;background:#00a884;display:grid;place-items:center;color:#001b14;font-size:42px;font-weight:900;margin:auto;box-shadow:0 14px 40px #0008}.splash h1{margin:18px 0 5px;font-size:30px}.splash p{margin:0;color:#91a3aa}
+@media(max-width:520px){.brand{font-size:20px}.iconbtn{width:40px;height:40px}.card{border-radius:15px}.chat-body{height:calc(100dvh - 130px)}}
+
+.media-preview{max-width:240px;max-height:280px;border-radius:12px;display:block;margin-bottom:4px;object-fit:cover}
+</style>
+</head>
+<body>
+<div class="splash" id="splash"><div><div class="splash-logo">A</div><h1>Apna Chat</h1><p>Private • Fast • Real-time</p></div></div>
+<div class="app">
+
+<section id="authScreen" class="login">
+  <h1>Apna Chat</h1>
+  <div class="small">WhatsApp-style Supabase chat</div>
+  <div class="card">
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <div class="row">
+      <button class="primary" id="loginBtn">Login</button>
+      <button class="secondary" id="signupBtn">Sign up</button>
+    </div>
+    <div id="authStatus" class="status"></div>
+  </div>
+</section>
+
+<section id="mainScreen" class="hidden">
+<header>
+  <div class="headrow">
+    <div>
+      <div class="brand">Apna Chat</div>
+      <div class="small" id="myOnline">Online</div><div class="app-shell-badge">● Secure chat</div>
+    </div>
+    <div class="header-actions">
+      <button class="iconbtn" id="newContactBtn" title="Add contact">＋</button>
+      <button class="iconbtn" id="profileBtn" title="Profile">👤</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="chats">Chats</button>
+    <button class="tab" data-tab="contacts">Contacts</button>
+    <button class="tab" data-tab="profile">Profile</button>
+  </div>
+</header>
+
+<main>
+  <section id="chatsTab">
+    <input class="search" id="chatSearch" placeholder="Search chats">
+    <div class="card" id="chatList"></div>
+  </section>
+
+  <section id="contactsTab" class="hidden">
+    <input class="search" id="contactSearch" placeholder="Search contacts">
+    <div class="card" id="contactList"></div>
+    <div class="card">
+      <b>Add new contact</b>
+      <div class="small" style="margin-top:5px">Doosre Supabase user ka UUID aur naam daalo.</div>
+      <input id="contactName" placeholder="Contact name">
+      <input id="contactId" placeholder="Supabase Auth User ID (UUID)">
+      <div class="row">
+        <button class="primary" id="saveContact">Save contact</button>
+        <button class="secondary" id="clearContact">Clear</button>
+      </div>
+      <div id="contactStatus" class="status"></div>
+    </div>
+  </section>
+
+  <section id="profileTab" class="hidden">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar" id="profileAvatar">A</div>
+        <div>
+          <div style="font-size:20px;font-weight:800" id="profileName">Apna Chat User</div>
+          <div class="small" id="profilePresence">Online</div>
+        </div>
+      </div>
+      <div class="profile-line" style="margin-top:14px">
+        <div class="label">Email</div><div class="value" id="profileEmail"></div>
+      </div>
+      <div class="profile-line">
+        <div class="label">Supabase User ID</div><div class="value" id="profileId"></div>
+      </div>
+      <div class="status-card"><b>WhatsApp-style features</b><div class="small">Real-time • Online • Typing • Reply • Reactions • Search • Pin/Mute • Emoji • Message actions</div></div>
+      <button class="secondary" id="notifyBtn">🔔 Enable notifications</button><button class="secondary" id="copyMyId">Copy my User ID</button>
+      <button class="secondary" id="logoutBtn">Logout</button>
+    </div>
+  </section>
+</main>
+</section>
+
+<section id="chatView" class="hidden">
+  <div class="chat-head">
+    <button class="back" id="backBtn">‹</button>
+    <div class="chat-avatar"><span id="chatAvatarLetter">U</span><span class="dot" id="chatDot"></span></div>
+    <div class="chat-title">
+      <div class="chat-name" id="chatName">Chat</div>
+      <div class="chat-presence" id="chatPresence">Offline</div>
+      <div class="typing" id="typingIndicator"></div>
+    </div>
+    <div class="head-tools">
+      <button class="head-tool" id="searchMessagesBtn" title="Search">🔍</button>
+      <button class="head-tool" id="chatMoreBtn" title="More">⋮</button>
+    </div>
+  </div>
+  <div id="chatMenu" class="chat-menu hidden">
+    <button id="pinChatBtn">📌 Pin chat</button>
+    <button id="muteChatBtn">🔕 Mute notifications</button>
+    <button id="clearChatBtn">🗑️ Clear chat on this device</button>
+  </div>
+  <div class="chat-body"><div id="messages"></div></div>
+  <div id="replyBar" class="replybar hidden">
+    <div><b id="replyName">Reply</b><div id="replyText"></div></div>
+    <button id="cancelReply">×</button>
+  </div>
+  <div class="composer">
+    <button class="toolbtn" id="emojiBtn" title="Emoji">😊</button>
+    <button class="toolbtn" id="attachBtn" title="Attachment">📎</button>
+    <input id="messageInput" maxlength="5000" placeholder="Message likho...">
+    <button class="sendbtn" id="sendBtn">➤</button>
+  </div>
+  <div id="emojiPanel" class="emoji-panel hidden"></div>
+  <input id="filePicker" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" hidden>
+</section>
+
+<div id="installBanner" class="install-banner hidden"><div class="grow"><b>Apna Chat install karo</b><div class="small">Home screen par app ki tarah use karo.</div></div><button class="install-now" id="installNow">Install</button><button class="install-close" id="installClose">×</button></div>
+<div class="bottom-nav" id="bottomNav">
+<button data-nav="chats" class="active"><span>💬</span>Chats</button>
+<button data-nav="contacts"><span>👥</span>Contacts</button>
+<button data-nav="profile"><span>⚙️</span>Profile</button>
+</div>
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://ldumkaoktuuudjxwzxfw.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Hz_Xy0v5bToBkwiwRmkuZA_v4P9wzyA";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let user = null;
+let currentContact = null;
+let dbChannel = null;
+let presenceChannel = null;
+let onlineIds = new Set();
+let contacts = JSON.parse(localStorage.getItem("apna_contacts_v1") || "[]");
+
+const $ = id => document.getElementById(id);
+
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+function initials(name){
+  const x=(name||"U").trim().split(/\s+/).filter(Boolean);
+  return ((x[0]?.[0]||"U")+(x[1]?.[0]||"")).toUpperCase();
+}
+function toast(t){
+  $("toast").textContent=t;$("toast").style.display="block";
+  clearTimeout(window._toast);window._toast=setTimeout(()=>$("toast").style.display="none",2200);
+}
+function contactById(id){return contacts.find(c=>c.id===id)}
+function saveContacts(){localStorage.setItem("apna_contacts_v1",JSON.stringify(contacts))}
+function isOnline(id){return onlineIds.has(id)}
+function formatTime(ts){
+  const d=new Date(ts), now=new Date();
+  if(d.toDateString()===now.toDateString()) return d.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+  return d.toLocaleDateString("en-IN",{day:"2-digit",month:"2-digit"});
+}
+
+async function login(){
+  const email=$("email").value.trim(), password=$("password").value;
+  if(!email||!password){$("authStatus").textContent="Email aur password bharna hai.";return}
+  const {data,error}=await db.auth.signInWithPassword({email,password});
+  if(error){$("authStatus").textContent=error.message;return}
+  startApp(data.user);
+}
+async function signup(){
+  const email=$("email").value.trim(), password=$("password").value;
+  if(!email||!password){$("authStatus").textContent="Email aur password bharna hai.";return}
+  const {data,error}=await db.auth.signUp({email,password});
+  if(error){$("authStatus").textContent=error.message;return}
+  if(data.session) startApp(data.user);
+  else $("authStatus").textContent="Account ban gaya. Email verification ho to verify karke Login karo.";
+}
+
+function startApp(u){
+  user=u;
+  $("authScreen").classList.add("hidden");
+  $("mainScreen").classList.remove("hidden");
+  fillProfile();
+  startPresence();
+  subscribeMessages();
+  renderContacts();
+  renderChats();
+}
+function fillProfile(){
+  const label=user.email||"User";
+  $("profileEmail").textContent=user.email||"";
+  $("profileId").textContent=user.id;
+  $("profileName").textContent=label.split("@")[0];
+  $("profileAvatar").textContent=initials(label.split("@")[0]);
+}
+function switchTab(tab){
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
+  $("chatsTab").classList.toggle("hidden",tab!=="chats");
+  $("contactsTab").classList.toggle("hidden",tab!=="contacts");
+  $("profileTab").classList.toggle("hidden",tab!=="profile");
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+
+function renderContacts(){
+  const q=$("contactSearch").value.trim().toLowerCase();
+  const list=contacts.filter(c=>(c.name+" "+c.id).toLowerCase().includes(q));
+  $("contactList").innerHTML="";
+  if(!list.length){$("contactList").innerHTML='<div class="empty">No contacts yet.<br>UUID + name se contact add karo.</div>';return}
+  list.forEach(c=>{
+    const row=document.createElement("div");row.className="chat-item";
+    row.innerHTML=`<div class="avatar">${esc(initials(c.name))}<span class="dot ${isOnline(c.id)?"online":""}"></span></div>
+      <div class="chat-main"><div class="chat-top"><div class="name">${esc(c.name)}</div></div>
+      <div class="preview">${isOnline(c.id)?"Online":"Offline"}</div></div>
+      <div style="width:78px"><button class="secondary" style="margin:0;padding:8px" data-chat="${esc(c.id)}">Chat</button></div>`;
+    row.querySelector("[data-chat]").onclick=()=>openChat(c);
+    $("contactList").appendChild(row);
+  });
+}
+async function getLastMessages(){
+  if(!user)return [];
+  const {data,error}=await db.from("chat_messages")
+    .select("id,sender_id,receiver_id,message_text,created_at,attachment_url,attachment_name,attachment_type")
+    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+    .order("created_at",{ascending:false}).limit(500);
+  if(error)return [];
+  return data||[];
+}
+async function renderChats(){
+  const search=$("chatSearch").value.trim().toLowerCase();
+  const msgs=await getLastMessages();
+  const map=new Map();
+  for(const m of msgs){
+    const other=m.sender_id===user.id?m.receiver_id:m.sender_id;
+    if(!map.has(other))map.set(other,m);
+  }
+  const items=contacts.map(c=>({c,last:map.get(c.id)}))
+    .filter(x=>!search || (x.c.name+" "+(x.last?.message_text||"")).toLowerCase().includes(search))
+    .sort((a,b)=>(new Date(b.last?.created_at||0))-(new Date(a.last?.created_at||0)));
+  $("chatList").innerHTML="";
+  if(!items.length){$("chatList").innerHTML='<div class="empty">Chats yahan dikhengi.<br>Contacts me user add karke chat start karo.</div>';return}
+  items.forEach(({c,last})=>{
+    const row=document.createElement("div");row.className="chat-item";
+    row.innerHTML=`<div class="avatar">${esc(initials(c.name))}<span class="dot ${isOnline(c.id)?"online":""}"></span></div>
+      <div class="chat-main"><div class="chat-top"><div class="name">${esc(c.name)}</div><div class="time">${last?formatTime(last.created_at):""}</div></div>
+      <div class="preview">${last?esc(last.sender_id===user.id?"You: ":"")+esc(last.message_text||""):"Start a new chat"}</div></div>`;
+    row.onclick=()=>openChat(c);
+    $("chatList").appendChild(row);
+  });
+}
+async function openChat(c){
+  currentContact=c;
+  $("chatView").classList.remove("hidden");
+  $("chatName").textContent=c.name;
+  $("chatAvatarLetter").textContent=initials(c.name);
+  updateChatPresence();
+  await loadMessages();
+  $("messageInput").focus();
+}
+function updateChatPresence(){
+  const on=isOnline(currentContact?.id);
+  $("chatPresence").textContent=on?"online":"offline";
+  $("chatDot").classList.toggle("online",on);
+}
+async function loadMessages(){
+  if(!user||!currentContact)return;
+  const a=user.id,b=currentContact.id;
+  const {data,error}=await db.from("chat_messages")
+    .select("id,sender_id,receiver_id,message_text,created_at,attachment_url,attachment_name,attachment_type")
+    .or(`and(sender_id.eq.${a},receiver_id.eq.${b}),and(sender_id.eq.${b},receiver_id.eq.${a})`)
+    .order("created_at",{ascending:true});
+
+  // Important: never clear the chat before a successful read.
+  // If a temporary network/RLS error occurs, existing messages stay visible.
+  if(error){
+    toast("Messages load nahi hue: "+error.message);
+    return;
+  }
+
+  $("messages").innerHTML="";
+  (data||[]).forEach(addMessage);
+  scrollMessages();
+}
+let replyTarget = null;
+let typingTimer = null;
+const emojis = ["😀","😂","😍","🥰","😘","😎","🤔","😢","😭","😡","👍","👎","❤️","🔥","🎉","🙏","👏","💯","😊","😉","🤣","😮","😴","🤝","❤️‍🔥","✨","⭐","💔","🙌","👌","💪","🎁"];
+
+function messageStorageKey(){
+  return `apna_deleted_${user?.id||"x"}_${currentContact?.id||"x"}`;
+}
+function getDeletedLocal(){
+  try{return JSON.parse(localStorage.getItem(messageStorageKey())||"[]")}catch{return []}
+}
+function addDeletedLocal(id){
+  const a=getDeletedLocal(); if(!a.includes(String(id)))a.push(String(id));
+  localStorage.setItem(messageStorageKey(),JSON.stringify(a));
+}
+function setReply(m){
+  replyTarget=m;
+  $("replyName").textContent=m.sender_id===user.id?"You":(currentContact?.name||"User");
+  $("replyText").textContent=m.message_text||"";
+  $("replyBar").classList.remove("hidden");
+  $("messageInput").focus();
+}
+function clearReply(){replyTarget=null;$("replyBar").classList.add("hidden")}
+function showMessageActions(m){
+  const old=document.querySelector(".msg-actions-open"); if(old)old.remove();
+  const d=document.querySelector(`[data-message-id="${CSS.escape(String(m.id))}"]`); if(!d)return;
+  const a=document.createElement("div"); a.className="msg-actions msg-actions-open";
+  a.innerHTML=`<button data-act="reply">↩ Reply</button>
+    <button data-act="react">❤️</button>
+    <button data-act="copy">Copy</button>
+    <button data-act="delete">Delete</button>`;
+  a.querySelector('[data-act="reply"]').onclick=()=>{setReply(m);a.remove()};
+  a.querySelector('[data-act="copy"]').onclick=async()=>{try{await navigator.clipboard.writeText(m.message_text||"");toast("Copied")}catch{} a.remove()};
+  a.querySelector('[data-act="react"]').onclick=()=>{addReaction(m.id,"❤️");a.remove()};
+  a.querySelector('[data-act="delete"]').onclick=()=>{deleteMessage(m);a.remove()};
+  d.appendChild(a);
+}
+function addReaction(id,emoji){
+  const key=`apna_react_${user.id}_${id}`;
+  const old=JSON.parse(localStorage.getItem(key)||"[]");
+  if(old.includes(emoji)) old.splice(old.indexOf(emoji),1); else old.push(emoji);
+  localStorage.setItem(key,JSON.stringify(old));
+  const d=document.querySelector(`[data-message-id="${CSS.escape(String(id))}"]`);
+  if(d){
+    let r=d.querySelector(".reactions");
+    if(!r){r=document.createElement("div");r.className="reactions";d.appendChild(r)}
+    r.innerHTML=old.map(x=>`<span class="reaction">${esc(x)}</span>`).join("");
+  }
+}
+function deleteMessage(m){
+  if(m.sender_id===user.id){
+    // Local "delete for me" fallback. Full cross-device delete is enabled by the SQL upgrade.
+    addDeletedLocal(m.id);
+    const d=document.querySelector(`[data-message-id="${CSS.escape(String(m.id))}"]`);
+    if(d)d.remove();
+    toast("Message deleted on this device");
+  }else{
+    addDeletedLocal(m.id);
+    const d=document.querySelector(`[data-message-id="${CSS.escape(String(m.id))}"]`);
+    if(d)d.remove();
+  }
+}
+async function addMessage(m){
+  if(getDeletedLocal().includes(String(m.id)))return;
+  if(document.querySelector(`[data-message-id="${CSS.escape(String(m.id))}"]`))return;
+  const d=document.createElement("div");
+  d.dataset.messageId=String(m.id);
+  d.className="msg "+(m.sender_id===user.id?"mine":"theirs");
+  const status=m.sender_id===user.id?` <span class="msg-status">✓✓</span>`:"";
+  let body=`<div>${esc(m.message_text||"")}</div>`;
+  if(m.attachment_url){
+    const signed=await db.storage.from("chat-media").createSignedUrl(m.attachment_url,3600);
+    if(!signed.error&&signed.data?.signedUrl){
+      if((m.attachment_type||"").startsWith("image/")) body=`<img class="media-preview" src="${signed.data.signedUrl}" alt="${esc(m.attachment_name||"image")}"><div>${esc(m.attachment_name||"")}</div>`;
+      else if((m.attachment_type||"").startsWith("video/")) body=`<video class="media-preview" controls src="${signed.data.signedUrl}"></video><div>${esc(m.attachment_name||"")}</div>`;
+      else body=`<a class="media-preview" style="padding:12px;background:#1a2b33;color:#fff;text-decoration:none" href="${signed.data.signedUrl}" target="_blank">📎 ${esc(m.attachment_name||"Open attachment")}</a>`;
+    }
+  }
+  d.innerHTML=`${body}<div class="msgmeta">${formatTime(m.created_at)}${status}</div>`;
+  d.onclick=()=>showMessageActions(m);
+  $("messages").appendChild(d);
+}
+function buildEmojiPanel(){
+  $("emojiPanel").innerHTML=emojis.map(e=>`<button type="button">${e}</button>`).join("");
+  $("emojiPanel").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    $("messageInput").value += b.textContent;
+    $("messageInput").focus();
+  });
+}
+function startTyping(){
+  if(!presenceChannel||!user)return;
+  clearTimeout(typingTimer);
+  presenceChannel.track({online_at:new Date().toISOString(),typing_chat:currentContact?.id||null});
+  typingTimer=setTimeout(()=>presenceChannel.track({online_at:new Date().toISOString(),typing_chat:null}),1200);
+}
+
+function scrollMessages(){
+  const b=document.querySelector(".chat-body");b.scrollTop=b.scrollHeight;
+}
+async function send(){
+  const text=$("messageInput").value.trim();
+  if(!text||!currentContact)return;
+
+  // Always take the sender from the current Supabase session.
+  // This prevents an old/stale user object from causing RLS problems.
+  const {data:sessionData,error:sessionError}=await db.auth.getSession();
+  const sessionUser=sessionData?.session?.user;
+  if(sessionError||!sessionUser){toast("Pehle login karo.");return}
+  user=sessionUser;
+
+  const receiverId=currentContact.id;
+  const outgoingText = replyTarget ? `↩ ${replyTarget.message_text||""}\n${text}` : text;
+  const {data:inserted,error}=await db.from("chat_messages")
+    .insert({
+      sender_id:sessionUser.id,
+      receiver_id:receiverId,
+      message_text:outgoingText,
+      message_type:"text"
+    })
+    .select("id,sender_id,receiver_id,message_text,created_at,attachment_url,attachment_name,attachment_type")
+    .single();
+
+  if(error){toast("Send failed: "+error.message);return}
+
+  $("messageInput").value="";
+  clearReply();
+
+  // Show the saved row immediately. Realtime may also deliver it, but addMessage()
+  // de-duplicates by id, so it will never appear twice.
+  if(inserted){addMessage(inserted);scrollMessages();}
+  renderChats();
+}
+function subscribeMessages(){
+  if(dbChannel)db.removeChannel(dbChannel);
+  dbChannel=db.channel("apna-chat-db-"+user.id).on("postgres_changes",
+    {event:"INSERT",schema:"public",table:"chat_messages"},p=>{
+      const m=p.new, ids=[user.id,currentContact?.id];
+      if(currentContact && ids.includes(m.sender_id)&&ids.includes(m.receiver_id)){
+        addMessage(m);
+        scrollMessages();
+      }
+      renderChats();
+    }).subscribe();
+}
+function startPresence(){
+  if(presenceChannel)db.removeChannel(presenceChannel);
+  presenceChannel=db.channel("apna-chat-presence",{config:{presence:{key:user.id}}});
+  presenceChannel.on("presence",{event:"sync"},()=>{
+
+    const state=presenceChannel.presenceState();
+    onlineIds=new Set(Object.keys(state));
+    onlineIds.delete(user.id);
+    $("myOnline").textContent="Online";
+    updateChatPresence();renderContacts();renderChats();
+  }).subscribe(async status=>{
+    if(status==="SUBSCRIBED"){
+      await presenceChannel.track({online_at:new Date().toISOString()});
+    }
+  });
+}
+
+
+// App/PWA shell
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;$("installBanner").classList.remove("hidden")});
+$("installNow").onclick=async()=>{if(!deferredInstallPrompt){toast("Chrome menu → Add to Home screen use karo.");return}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$("installBanner").classList.add("hidden")};
+$("installClose").onclick=()=>$("installBanner").classList.add("hidden");
+window.addEventListener('appinstalled',()=>{$("installBanner").classList.add("hidden");toast("Apna Chat install ho gaya ✓")});
+if("serviceWorker" in navigator && location.protocol!=="file:"){navigator.serviceWorker.register("./sw.js").catch(()=>{})}
+setTimeout(()=>{$("splash")?.classList.add("hide");setTimeout(()=>{$("splash")?.remove()},300)},650);
+document.querySelectorAll("#bottomNav [data-nav]").forEach(b=>b.onclick=()=>switchTab(b.dataset.nav));
+const _switchTab=switchTab;
+switchTab=function(tab){_switchTab(tab);document.querySelectorAll("#bottomNav button").forEach(x=>x.classList.toggle("active",x.dataset.nav===tab));};
+
+buildEmojiPanel();
+$("emojiBtn").onclick=()=>$("emojiPanel").classList.toggle("hidden");
+$("cancelReply").onclick=clearReply;
+$("attachBtn").onclick=()=>$("filePicker").click();
+$("filePicker").onchange=async()=>{
+  const f=$("filePicker").files?.[0];
+  if(!f||!currentContact||!user)return;
+  toast("Uploading...");
+  const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+  const path=user.id+"/"+Date.now()+"_"+safe;
+  const up=await db.storage.from("chat-media").upload(path,f,{upsert:false,contentType:f.type||"application/octet-stream"});
+  if(up.error){toast("Upload failed: "+up.error.message);return}
+  const ins=await db.from("chat_messages").insert({sender_id:user.id,receiver_id:currentContact.id,message_text:f.name,message_type:"media",attachment_url:path,attachment_name:f.name,attachment_type:f.type||"application/octet-stream"}).select("id,sender_id,receiver_id,message_text,created_at,attachment_url,attachment_name,attachment_type").single();
+  if(ins.error){toast("Message save failed: "+ins.error.message);return}
+  if(ins.data){addMessage(ins.data);scrollMessages();renderChats()}
+  $("filePicker").value="";
+};
+$("messageInput").addEventListener("input",startTyping);
+$("searchMessagesBtn").onclick=()=>{
+  const q=prompt("Chat message search:");
+  if(q===null)return;
+  const needle=q.trim().toLowerCase();
+  document.querySelectorAll("#messages .msg").forEach(x=>{
+    x.style.display=(!needle || x.textContent.toLowerCase().includes(needle))?"":"none";
+  });
+};
+$("chatMoreBtn").onclick=()=>$("chatMenu").classList.toggle("hidden");
+$("pinChatBtn").onclick=()=>{
+  if(!currentContact)return;
+  const k="apna_pinned_v1",a=JSON.parse(localStorage.getItem(k)||"[]");
+  const i=a.indexOf(currentContact.id); if(i>=0)a.splice(i,1); else a.unshift(currentContact.id);
+  localStorage.setItem(k,JSON.stringify(a)); $("chatMenu").classList.add("hidden"); renderChats();
+};
+$("muteChatBtn").onclick=()=>{
+  if(!currentContact)return;
+  const k="apna_muted_v1",a=JSON.parse(localStorage.getItem(k)||"[]");
+  const i=a.indexOf(currentContact.id); if(i>=0)a.splice(i,1); else a.push(currentContact.id);
+  localStorage.setItem(k,JSON.stringify(a)); $("chatMenu").classList.add("hidden");
+  toast(i>=0?"Notifications unmuted":"Notifications muted");
+};
+$("clearChatBtn").onclick=()=>{
+  if(!currentContact)return;
+  if(confirm("Is device par is chat ke messages hide karne hain?")){
+    const msgs=[...document.querySelectorAll("#messages .msg")].map(x=>x.dataset.messageId);
+    msgs.forEach(addDeletedLocal);
+    $("messages").innerHTML=""; toast("Chat cleared on this device");
+  }
+  $("chatMenu").classList.add("hidden");
+};
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".emoji-panel")&&!e.target.closest("#emojiBtn"))$("emojiPanel").classList.add("hidden");
+  if(!e.target.closest(".chat-menu")&&!e.target.closest("#chatMoreBtn"))$("chatMenu").classList.add("hidden");
+});
+
+$("loginBtn").onclick=login;
+$("signupBtn").onclick=signup;
+$("email").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
+$("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});
+$("newContactBtn").onclick=()=>{switchTab("contacts");$("contactName").focus()};
+$("profileBtn").onclick=()=>switchTab("profile");
+$("contactSearch").oninput=renderContacts;
+$("chatSearch").oninput=renderChats;
+$("saveContact").onclick=()=>{
+  const name=$("contactName").value.trim(),id=$("contactId").value.trim();
+  if(!name||!id){$("contactStatus").textContent="Name aur UUID dono bharna hai.";return}
+  if(id===user.id){$("contactStatus").textContent="Apni UUID contact ke roop me mat add karo.";return}
+  if(!/^[0-9a-f-]{36}$/i.test(id)){ $("contactStatus").textContent="UUID format check karo.";return}
+  const old=contactById(id);
+  if(old)old.name=name;else contacts.push({id,name});
+  saveContacts();$("contactName").value="";$("contactId").value="";
+  $("contactStatus").textContent="Contact save ho gaya.";
+  renderContacts();renderChats();
+};
+$("clearContact").onclick=()=>{$("contactName").value="";$("contactId").value="";$("contactStatus").textContent=""};
+$("backBtn").onclick=()=>{$("chatView").classList.add("hidden");currentContact=null};
+$("sendBtn").onclick=send;
+$("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();send()}});
+
+$("notifyBtn").onclick=async()=>{if(!("Notification" in window)){toast("Browser notifications supported nahi hain.");return}const p=await Notification.requestPermission();toast(p==="granted"?"Notifications enabled ✓":"Notifications permission nahi mila")};
+$("copyMyId").onclick=async()=>{await navigator.clipboard.writeText(user.id);toast("User ID copied")};
+$("logoutBtn").onclick=async()=>{
+  if(presenceChannel)await db.removeChannel(presenceChannel);
+  if(dbChannel)await db.removeChannel(dbChannel);
+  await db.auth.signOut();location.reload();
+};
+(async()=>{
+  const {data}=await db.auth.getSession();
+  if(data.session)startApp(data.session.user);
+})();
+</script>
+</body>
+</html>
